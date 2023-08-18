@@ -4,14 +4,7 @@ const fs = require("fs");
 const cookiesString = fs.readFileSync("cookies.json");
 const parsedCookies = JSON.parse(cookiesString);
 
-async function promptGpt(page, prompt) {
-  await page.waitForSelector("textarea#prompt-textarea");
-
-  await page.keyboard.type(prompt);
-  await page.keyboard.press("Enter");
-
-  await page.waitForTimeout(500);
-
+async function waitForGptResponse(page) {
   // First Response marks that start of the generation of reply
   await page.waitForResponse(
     async (response) => {
@@ -34,13 +27,19 @@ async function promptGpt(page, prompt) {
   // Second marks the end of the generation of reply
   await page.waitForResponse(
     async (response) => {
-      if (
+      const isConversationResponse =
         response
           .url()
           .startsWith("https://chat.openai.com/backend-api/conversations") &&
         response.status() === 200 &&
-        response.url().endsWith("order=updated")
-      ) {
+        response.url().endsWith("order=updated");
+
+      const isConversationResponseWithReply =
+        response
+          .url()
+          .startsWith("https://chat.openai.com/backend-api/lat/r") &&
+        response.status() === 200;
+      if (isConversationResponse || isConversationResponseWithReply) {
         // console.log(response.url());
         console.log("Reply has been generated!");
         return true;
@@ -48,6 +47,17 @@ async function promptGpt(page, prompt) {
     },
     { timeout: 0 }
   );
+}
+
+async function promptGpt(page, prompt) {
+  await page.waitForSelector("textarea#prompt-textarea");
+
+  await page.keyboard.type(prompt);
+  await page.keyboard.press("Enter");
+
+  await page.waitForTimeout(500);
+
+  await waitForGptResponse(page);
 
   const gptResponse = await page.evaluate(() => {
     const messages = document.querySelectorAll("div.text-token-text-primary");
@@ -86,7 +96,7 @@ async function main() {
     "What is the best movie of all time?",
     "What is the best programming language?",
     "What is the best programming language for machine learning?",
-  ]
+  ];
 
   for (let i = 0; i < 5; i++) {
     console.log("Init Prompt: " + i);
@@ -94,7 +104,6 @@ async function main() {
     await promptGpt(page, prompts[i]);
     console.log("Done Prompt: " + i);
   }
-
 }
 
 main();
