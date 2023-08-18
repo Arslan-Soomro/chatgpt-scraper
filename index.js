@@ -5,41 +5,15 @@ const cookiesString = fs.readFileSync("cookies.json");
 const parsedCookies = JSON.parse(cookiesString);
 
 async function waitForGptResponse(page) {
-  // First Response marks the start of the generation of reply
+  // This response marks the end of the GPT response
   await page.waitForResponse(
     async (response) => {
-      // Print Response URL and Content
-      if (
-        response
-          .url()
-          .startsWith("https://chat.openai.com/backend-api/conversations") &&
-        response.status() === 200 &&
-        response.url().endsWith("order=updated")
-      ) {
-        // console.log(response.url());
-        console.log("Reply is being generated...");
-        return true;
-      }
-    },
-    { timeout: 0 }
-  );
-
-  // Second marks the end of the generation of reply
-  await page.waitForResponse(
-    async (response) => {
-      const isConversationResponse =
-        response
-          .url()
-          .startsWith("https://chat.openai.com/backend-api/conversations") &&
-        response.status() === 200 &&
-        response.url().endsWith("order=updated");
-
       const isConversationResponseWithReply =
         response
           .url()
           .startsWith("https://chat.openai.com/backend-api/lat/r") &&
         response.status() === 200;
-      if (isConversationResponse || isConversationResponseWithReply) {
+      if (isConversationResponseWithReply) {
         // console.log(response.url());
         console.log("Reply has been generated!");
         return true;
@@ -70,7 +44,7 @@ async function promptGpt(page, prompt) {
 }
 
 async function writeToJsonFile(data, filename) {
-    await fs.writeFileSync(filename, JSON.stringify(data, null, 2));
+  await fs.writeFileSync(filename, JSON.stringify(data, null, 2));
 }
 
 async function main() {
@@ -105,13 +79,15 @@ async function main() {
   ];
 
   for (let i = 0; i < 5; i++) {
-    console.log("Init Prompt: " + i);
-    await page.waitForTimeout(500);
+    console.log("Init Prompt: " + (i + 1));
+    await page.waitForTimeout(1000);
     const reply = await promptGpt(page, prompts[i]);
     gptResponses.push(reply);
     await writeToJsonFile(gptResponses, "data.json");
-    console.log("Done Prompt: " + i);
+    console.log("Done Prompt: " + (i + 1));
   }
+
+  await browser.close();
 }
 
 main();
