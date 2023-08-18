@@ -1,5 +1,6 @@
 const puppeteer = require("puppeteer");
 const fs = require("fs");
+const { getPrompts } = require("./prompts");
 
 const cookiesString = fs.readFileSync("cookies.json");
 const parsedCookies = JSON.parse(cookiesString);
@@ -70,19 +71,13 @@ async function main() {
 
   await page.waitForTimeout(2000);
 
-  const prompts = [
-    "What is the meaning of life in 2 lines.",
-    "Who is the best basketball player of all time in 2 lines.?",
-    "What is the best movie of all time in 2 lines.",
-    "What is the best programming language in 2 lines.",
-    "What is the best programming language for machine learning in 2 lines.",
-  ];
+  const prompts = getPrompts();
 
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < prompts.length; i++) {
     console.log("Init Prompt: " + (i + 1));
     await page.waitForTimeout(1000);
     const reply = await promptGpt(page, prompts[i]);
-    gptResponses.push(reply);
+    gptResponses.push(reply.substring(9)); // substring to remove the "CHATGPT\n\n" part
     await writeToJsonFile(gptResponses, "data.json");
     console.log("Done Prompt: " + (i + 1));
   }
