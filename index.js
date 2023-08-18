@@ -24,6 +24,7 @@ async function promptGpt(page, prompt) {
         response.url().endsWith("order=updated")
       ) {
         // console.log(response.url());
+        console.log("Reply is being generated...");
         return true;
       }
     },
@@ -41,6 +42,7 @@ async function promptGpt(page, prompt) {
         response.url().endsWith("order=updated")
       ) {
         // console.log(response.url());
+        console.log("Reply has been generated!");
         return true;
       }
     },
@@ -87,8 +89,10 @@ async function main() {
   ]
 
   for (let i = 0; i < 5; i++) {
+    console.log("Init Prompt: " + i);
     await page.waitForTimeout(500);
     await promptGpt(page, prompts[i]);
+    console.log("Done Prompt: " + i);
   }
 
 }
