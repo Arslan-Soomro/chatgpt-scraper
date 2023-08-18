@@ -4,45 +4,7 @@ const fs = require("fs");
 const cookiesString = fs.readFileSync("cookies.json");
 const parsedCookies = JSON.parse(cookiesString);
 
-async function getGptResponse(page) {
-  await page.waitForTimeout(2000);
-  await page.waitForSelector("textarea#prompt-textarea");
-
-  await page.keyboard.type(prompt);
-  await page.keyboard.press("Enter");
-
-  await page.waitForTimeout(500);
-  await page.waitForNetworkIdle();
-
-  const gptResponse = await page.evaluate(() => {
-    const messages = document.querySelectorAll("div.text-token-text-primary");
-    const response = messages[messages.length - 1].innerText;
-    console.log("GPT RESPONSE: ", response);
-    return response;
-  });
-  return gptResponse;
-}
-
-async function main() {
-  const browser = await puppeteer.launch({
-    headless: false,
-    userDataDir: "./user_data",
-  });
-  const page = await browser.newPage();
-
-  if (parsedCookies.length !== 0) {
-    for (let cookie of parsedCookies) {
-      await page.setCookie(cookie);
-    }
-  }
-
-  await page.goto("https://chat.openai.com/", {
-    waitUntil: "domcontentloaded",
-  });
-
-  const prompt = "Who is John Delon ?";
-
-  await page.waitForTimeout(2000);
+async function promptGpt(page, prompt) {
   await page.waitForSelector("textarea#prompt-textarea");
 
   await page.keyboard.type(prompt);
@@ -85,33 +47,50 @@ async function main() {
     { timeout: 0 }
   );
 
-  console.log("Should Continue now!");
-
   const gptResponse = await page.evaluate(() => {
     const messages = document.querySelectorAll("div.text-token-text-primary");
-    const reply = messages[messages.length - 1].innerText;
+    const reply = messages[messages.length - 1].innerText; // The last inserted div contains the reply
     console.log("GPT RESPONSE: ", reply);
     return reply;
   });
 
-  console.log("GPTR: ", gptResponse);
+  return gptResponse;
+}
 
-  /*
-  data = await page.evaluate(() => {
-    const promptInput = document.querySelector("textarea#prompt-textarea");
-    const submitButton = promptInput.nextElementSibling;
-    console.log(promptInput);
-    promptInput.value = "Who was John Delon ?";
-    console.log(submitButton);
-    submitButton.click();
-  })
-  */
+async function main() {
+  // Load browser, page and cookies
 
-  /*
-    await page.waitForSelector('input[type="email"]');
-    await page.screenshot({path: 'gpt.png'});
-    await browser.close();
-  */
+  const browser = await puppeteer.launch({
+    headless: false,
+    userDataDir: "./user_data",
+  });
+  const page = await browser.newPage();
+
+  if (parsedCookies.length !== 0) {
+    for (let cookie of parsedCookies) {
+      await page.setCookie(cookie);
+    }
+  }
+
+  await page.goto("https://chat.openai.com/", {
+    waitUntil: "domcontentloaded",
+  });
+
+  await page.waitForTimeout(2000);
+
+  const prompts = [
+    "What is the meaning of life?",
+    "Who is the best basketball player of all time?",
+    "What is the best movie of all time?",
+    "What is the best programming language?",
+    "What is the best programming language for machine learning?",
+  ]
+
+  for (let i = 0; i < 5; i++) {
+    await page.waitForTimeout(500);
+    await promptGpt(page, prompts[i]);
+  }
+
 }
 
 main();
