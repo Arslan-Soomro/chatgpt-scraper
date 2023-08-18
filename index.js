@@ -5,7 +5,7 @@ const cookiesString = fs.readFileSync("cookies.json");
 const parsedCookies = JSON.parse(cookiesString);
 
 async function waitForGptResponse(page) {
-  // First Response marks that start of the generation of reply
+  // First Response marks the start of the generation of reply
   await page.waitForResponse(
     async (response) => {
       // Print Response URL and Content
@@ -69,8 +69,14 @@ async function promptGpt(page, prompt) {
   return gptResponse;
 }
 
+async function writeToJsonFile(data, filename) {
+    await fs.writeFileSync(filename, JSON.stringify(data, null, 2));
+}
+
 async function main() {
   // Load browser, page and cookies
+
+  const gptResponses = [];
 
   const browser = await puppeteer.launch({
     headless: false,
@@ -91,17 +97,19 @@ async function main() {
   await page.waitForTimeout(2000);
 
   const prompts = [
-    "What is the meaning of life?",
-    "Who is the best basketball player of all time?",
-    "What is the best movie of all time?",
-    "What is the best programming language?",
-    "What is the best programming language for machine learning?",
+    "What is the meaning of life in 2 lines.",
+    "Who is the best basketball player of all time in 2 lines.?",
+    "What is the best movie of all time in 2 lines.",
+    "What is the best programming language in 2 lines.",
+    "What is the best programming language for machine learning in 2 lines.",
   ];
 
   for (let i = 0; i < 5; i++) {
     console.log("Init Prompt: " + i);
     await page.waitForTimeout(500);
-    await promptGpt(page, prompts[i]);
+    const reply = await promptGpt(page, prompts[i]);
+    gptResponses.push(reply);
+    await writeToJsonFile(gptResponses, "data.json");
     console.log("Done Prompt: " + i);
   }
 }
